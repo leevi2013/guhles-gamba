@@ -1,0 +1,758 @@
+GAMBA SLOT MACHINE — FULL PROJECT TEXT
+Minecraft 1.21.11 / Fabric / Java 21
+
+========================================================================================
+FILE: .gitignore
+========================================================================================
+.gradle/
+.gradle-bootstrap/
+build/
+out/
+.idea/
+*.iml
+run/
+
+========================================================================================
+FILE: CONTRIBUTING.md
+========================================================================================
+# Mitwirken
+
+1. Forke das Repository.
+2. Erstelle einen Feature-Branch.
+3. Baue das Projekt lokal mit `./gradlew build` bzw. `gradlew.bat build`.
+4. Öffne einen Pull Request mit einer kurzen Beschreibung der Änderung.
+
+Bitte ändere die Einsatzprüfung nicht so, dass Einsätze von 0 oder weniger akzeptiert werden.
+
+========================================================================================
+FILE: LICENSE
+========================================================================================
+MIT License
+
+Copyright (c) 2026 GambaMod contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+========================================================================================
+FILE: README.md
+========================================================================================
+# Gamba Slot Machine (Fabric 1.21.11)
+
+Ein Fabric-Mod-Projekt für Minecraft Java Edition 1.21.11. Es stellt eine Slotmaschine in einem normalen, sechzeiligen Truhen-GUI mit blauem Akzent bereit.
+
+## Features
+
+- Blaues Chest-GUI mit sauber getrennten Buttons und Info-Slots.
+- Einsatzvalidierung: 0 und negative Einsätze werden im Chat abgewiesen; nach ungültiger Eingabe bleibt der Dreh blockiert, bis ein gültiger Einsatz gesetzt wurde.
+- Einsatz in Emeralds, Standard-Einsatz 1, GUI-Limit 1–64 Emeralds.
+- Zufällige Animation zwischen 40 und 80 Ticks (2–4 Sekunden).
+- Ore-Symbole: Coal Ore 0.5x, Iron Ore 1.2x, Gold Ore 2.0x, Diamond Ore 5.0x, Emerald Ore 10.0x, Ancient Debris / Netherite 25.0x.
+- Gewinn nur bei drei gleichen Symbolen in der mittleren Reihe.
+- Während eines laufenden Drehs ist ein weiterer Dreh blockiert.
+- Alle Abbuchungen, Validierungen, Ergebnisse und Auszahlungen werden serverseitig verarbeitet.
+
+## Befehle
+
+- `/gamba` – öffnet die Slotmaschine.
+- `/gamba bet <zahl>` – setzt den Einsatz. Beispiel: `/gamba bet 10`.
+- `/gamba balance` – zeigt die Emeralds im Inventar an, die als Einsatz genutzt werden können.
+- `/gamba odds` – zeigt alle Multiplikatoren im Chat.
+
+Es zählen Emeralds in Hotbar und Hauptinventar, nicht in Rüstung oder Offhand. Der Einsatz wird beim Start abgebucht. Bei drei gleichen Symbolen wird `Einsatz × Multiplikator` als Emeralds ausgezahlt; Bruchteile werden abgerundet. Ohne drei gleiche Symbole gibt es keine Auszahlung.
+
+## Build (Windows)
+
+1. Installiere Java 21.
+2. Öffne diesen Ordner in IntelliJ IDEA oder öffne darin ein Terminal.
+3. Baue die Mod mit:
+   ```powershell
+   .\gradlew.bat build
+   ```
+4. Die Mod-JAR liegt anschließend in `build\libs\gamba-mod-1.0.0.jar` (die genaue Datei kann je nach Build-Ausgabe einen zusätzlichen Klassifikator haben).
+5. Installiere Fabric Loader für Minecraft 1.21.11. Lege die JAR zusammen mit Fabric API in den `mods`-Ordner.
+
+## Build (Linux/macOS)
+
+```bash
+chmod +x ./gradlew
+./gradlew build
+```
+
+## GitHub
+
+Erstelle ein leeres Repository auf GitHub, entpacke dieses Projekt, und lade den gesamten Inhalt inklusive `src`, `build.gradle`, `settings.gradle`, `gradle.properties` und Gradle Wrapper hoch. Nicht den Ordner `build/` committen.
+
+## Versions
+
+- Minecraft: 1.21.11
+- Java: 21
+- Fabric Loader: 0.19.5
+- Fabric API: 0.141.6+1.21.11
+- Yarn Mappings: 1.21.11+build.4
+
+## Hinweis
+
+Diese Mod verwendet ausschließlich Emeralds als virtuelle Ingame-Einsatzwährung; es gibt keine Echtgeldfunktion.
+
+Die in diesem Projekt enthaltenen `gradlew`-Skripte laden beim ersten Start Gradle 9.7.1 herunter. Dafür ist eine Internetverbindung erforderlich. In dieser Arbeitsumgebung konnte der eigentliche Minecraft-Build nicht ausgeführt werden, weil der Zugriff auf die externen Download-Hosts nicht verfügbar war; das Projekt ist daher als Quellprojekt, nicht als bereits getestete JAR, bereitgestellt.
+
+========================================================================================
+FILE: build.gradle
+========================================================================================
+plugins {
+    id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
+    id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.group
+
+base {
+    archivesName = 'gamba-mod'
+}
+
+repositories { }
+
+loom {
+    splitEnvironmentSourceSets()
+    mods {
+        "gamba_mod" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.mappings_version}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+}
+
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') {
+        expand 'version': project.version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 21
+}
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.jar {
+    from('LICENSE') {
+        rename { "${it}_gamba-mod" }
+    }
+}
+
+========================================================================================
+FILE: gradle/wrapper/gradle-wrapper.properties
+========================================================================================
+distributionBase=GRADLE_USER_HOME
+distributionPath=wrapper/dists
+distributionUrl=https\://services.gradle.org/distributions/gradle-9.7.1-bin.zip
+networkTimeout=10000
+validateDistributionUrl=true
+zipStoreBase=GRADLE_USER_HOME
+zipStorePath=wrapper/dists
+
+========================================================================================
+FILE: gradle.properties
+========================================================================================
+org.gradle.jvmargs=-Xmx2G
+org.gradle.parallel=true
+
+minecraft_version=1.21.11
+loader_version=0.19.5
+loom_version=1.18-SNAPSHOT
+fabric_api_version=0.141.6+1.21.11
+mappings_version=1.21.11+build.4
+mod_version=1.0.0
+group=de.gambamod
+
+========================================================================================
+FILE: gradlew
+========================================================================================
+#!/bin/sh
+# Lightweight Gradle bootstrap for environments where the standard wrapper JAR is unavailable.
+set -eu
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+VERSION="9.7.1"
+BOOTSTRAP="$ROOT/.gradle-bootstrap"
+GRADLE_HOME="$BOOTSTRAP/gradle-$VERSION"
+GRADLE_BIN="$GRADLE_HOME/bin/gradle"
+
+if [ ! -x "$GRADLE_BIN" ]; then
+  mkdir -p "$BOOTSTRAP"
+  ZIP="$BOOTSTRAP/gradle-$VERSION-bin.zip"
+  URL="https://services.gradle.org/distributions/gradle-$VERSION-bin.zip"
+  echo "Gradle $VERSION nicht gefunden; lade Gradle herunter ..."
+  if command -v curl >/dev/null 2>&1; then
+    curl -fL "$URL" -o "$ZIP"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -O "$ZIP" "$URL"
+  else
+    echo "Fehler: curl oder wget wird zum Herunterladen von Gradle benötigt." >&2
+    exit 1
+  fi
+  if command -v unzip >/dev/null 2>&1; then
+    unzip -q -o "$ZIP" -d "$BOOTSTRAP"
+  else
+    echo "Fehler: unzip wird zum Entpacken von Gradle benötigt." >&2
+    exit 1
+  fi
+  rm -f "$ZIP"
+fi
+
+exec "$GRADLE_BIN" "$@"
+
+========================================================================================
+FILE: gradlew.bat
+========================================================================================
+@echo off
+setlocal
+set "ROOT=%~dp0"
+set "GRADLE_VERSION=9.7.1"
+set "BOOTSTRAP=%ROOT%.gradle-bootstrap"
+set "GRADLE_HOME=%BOOTSTRAP%\gradle-%GRADLE_VERSION%"
+set "GRADLE_BIN=%GRADLE_HOME%\bin\gradle.bat"
+
+if exist "%GRADLE_BIN%" goto runGradle
+if not exist "%BOOTSTRAP%" mkdir "%BOOTSTRAP%"
+echo Gradle %GRADLE_VERSION% nicht gefunden; lade Gradle herunter ...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $base='%BOOTSTRAP%'; $zip=Join-Path $base 'gradle-%GRADLE_VERSION%-bin.zip'; Invoke-WebRequest -Uri 'https://services.gradle.org/distributions/gradle-%GRADLE_VERSION%-bin.zip' -OutFile $zip; Expand-Archive -LiteralPath $zip -DestinationPath $base -Force; Remove-Item -LiteralPath $zip -Force"
+if errorlevel 1 exit /b 1
+if not exist "%GRADLE_BIN%" (
+  echo Fehler: Gradle konnte nicht installiert werden.
+  exit /b 1
+)
+
+:runGradle
+call "%GRADLE_BIN%" %*
+exit /b %ERRORLEVEL%
+
+========================================================================================
+FILE: settings.gradle
+========================================================================================
+pluginManagement {
+    repositories {
+        maven { url = 'https://maven.fabricmc.net/' }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+rootProject.name = 'gamba-mod'
+
+========================================================================================
+FILE: src/client/java/de/gambamod/client/GambaModClient.java
+========================================================================================
+package de.gambamod.client;
+
+import de.gambamod.GambaMod;
+import net.fabricmc.api.ClientModInitializer;
+import net.minecraft.client.gui.screen.ingame.GenericContainerScreen;
+import net.minecraft.client.gui.screen.ingame.HandledScreens;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.screen.GenericContainerScreenHandler;
+import net.minecraft.screen.ScreenHandlerType;
+import net.minecraft.text.Text;
+
+public final class GambaModClient implements ClientModInitializer {
+    @Override
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public void onInitializeClient() {
+        // GenericContainerScreen is Minecraft's own chest UI. The raw cast is needed because
+        // its screen-handler type is the parent GenericContainerScreenHandler, while our
+        // registered handler extends that class and adds server-side button behavior.
+        HandledScreens.register((ScreenHandlerType) GambaMod.GAMBA_HANDLER,
+                (handler, inventory, title) -> new GenericContainerScreen(
+                        (GenericContainerScreenHandler) handler,
+                        (PlayerInventory) inventory,
+                        (Text) title
+                ));
+    }
+}
+
+========================================================================================
+FILE: src/main/java/de/gambamod/GambaMachine.java
+========================================================================================
+package de.gambamod;
+
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.inventory.Inventory;
+import net.minecraft.inventory.SimpleInventory;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+
+public final class GambaMachine {
+    public static final int BET_DOWN_SLOT = 38;
+    public static final int BET_DISPLAY_SLOT = 40;
+    public static final int BET_UP_SLOT = 42;
+    public static final int SPIN_SLOT = 49;
+    public static final int SYMBOL_1_SLOT = 21;
+    public static final int SYMBOL_2_SLOT = 22;
+    public static final int SYMBOL_3_SLOT = 23;
+    private static final int MIN_BET = 1;
+    private static final int MAX_BET = 64;
+    private static final int SPIN_MIN_TICKS = 40;
+    private static final int SPIN_MAX_TICKS = 80;
+
+    private static final Map<UUID, Integer> BETS = new HashMap<>();
+    private static final java.util.Set<UUID> INVALID_BETS = new java.util.HashSet<>();
+    private static final Map<UUID, SpinState> ACTIVE_SPINS = new HashMap<>();
+
+    private GambaMachine() { }
+
+    public enum OreSymbol {
+        COAL(Items.COAL_ORE, "Coal Ore", 0.5),
+        IRON(Items.IRON_ORE, "Iron Ore", 1.2),
+        GOLD(Items.GOLD_ORE, "Gold Ore", 2.0),
+        DIAMOND(Items.DIAMOND_ORE, "Diamond Ore", 5.0),
+        EMERALD(Items.EMERALD_ORE, "Emerald Ore", 10.0),
+        NETHERITE(Items.ANCIENT_DEBRIS, "Ancient Debris / Netherite", 25.0);
+
+        public final Item item;
+        public final String displayName;
+        public final double multiplier;
+
+        OreSymbol(Item item, String displayName, double multiplier) {
+            this.item = item;
+            this.displayName = displayName;
+            this.multiplier = multiplier;
+        }
+
+        public static OreSymbol random() {
+            OreSymbol[] symbols = values();
+            return symbols[ThreadLocalRandom.current().nextInt(symbols.length)];
+        }
+    }
+
+    private static final class SpinState {
+        private final ServerPlayerEntity player;
+        private final Inventory inventory;
+        private final int bet;
+        private final int durationTicks;
+        private int elapsedTicks = 0;
+
+        private SpinState(ServerPlayerEntity player, Inventory inventory, int bet, int durationTicks) {
+            this.player = player;
+            this.inventory = inventory;
+            this.bet = bet;
+            this.durationTicks = durationTicks;
+        }
+    }
+
+    public static int getBet(ServerPlayerEntity player) {
+        return BETS.getOrDefault(player.getUuid(), 1);
+    }
+
+    public static int countEmeralds(ServerPlayerEntity player) {
+        int total = 0;
+        PlayerInventory inventory = player.getInventory();
+        // Main inventory and hotbar only; armor/offhand are not used as currency.
+        for (int slot = 0; slot < 36; slot++) {
+            ItemStack stack = inventory.getStack(slot);
+            if (stack.isOf(Items.EMERALD)) {
+                total += stack.getCount();
+            }
+        }
+        return total;
+    }
+
+    public static void setBetFromCommand(ServerPlayerEntity player, int amount) {
+        if (!validateBet(player, amount)) {
+            if (player.currentScreenHandler instanceof GambaScreenHandler handler) {
+                showInvalidBet(handler.getMachineInventory());
+            }
+            return;
+        }
+        BETS.put(player.getUuid(), amount);
+        INVALID_BETS.remove(player.getUuid());
+        if (player.currentScreenHandler instanceof GambaScreenHandler handler) {
+            fillGui(handler.getMachineInventory(), amount, ACTIVE_SPINS.containsKey(player.getUuid()));
+        }
+        player.sendMessage(Text.literal("§bGamba-Einsatz gesetzt: §e" + amount + " Emeralds"), false);
+    }
+
+    private static boolean validateBet(ServerPlayerEntity player, int amount) {
+        if (amount <= 0) {
+            INVALID_BETS.add(player.getUuid());
+            player.sendMessage(Text.literal("§cFehler: Der Einsatz muss größer als 0 sein. Drehung blockiert, bis ein gültiger Einsatz gesetzt wird."), false);
+            return false;
+        }
+        if (amount > MAX_BET) {
+            INVALID_BETS.add(player.getUuid());
+            player.sendMessage(Text.literal("§cFehler: Maximaler Einsatz sind " + MAX_BET + " Emeralds. Drehung blockiert, bis ein gültiger Einsatz gesetzt wird."), false);
+            return false;
+        }
+        INVALID_BETS.remove(player.getUuid());
+        return true;
+    }
+
+    public static void open(ServerPlayerEntity player) {
+        int bet = getBet(player);
+        SimpleInventory inventory = new SimpleInventory(GambaScreenHandler.GUI_SIZE);
+        fillGui(inventory, bet, false);
+        if (INVALID_BETS.contains(player.getUuid())) showInvalidBet(inventory);
+        player.openHandledScreen(new SimpleNamedScreenHandlerFactory(
+                (syncId, playerInventory, playerEntity) -> new GambaScreenHandler(syncId, playerInventory, inventory),
+                Text.literal("§9§lGAMBA SLOT")
+        ));
+    }
+
+    public static void changeBet(ServerPlayerEntity player, Inventory inventory, int delta) {
+        if (ACTIVE_SPINS.containsKey(player.getUuid())) {
+            player.sendMessage(Text.literal("§cWährend des Drehens kann der Einsatz nicht geändert werden."), false);
+            return;
+        }
+        int current = getBet(player);
+        int next = current + delta;
+        if (next < MIN_BET) next = MIN_BET;
+        if (next > MAX_BET) next = MAX_BET;
+        BETS.put(player.getUuid(), next);
+        INVALID_BETS.remove(player.getUuid());
+        fillGui(inventory, next, false);
+        player.sendMessage(Text.literal("§bEinsatz: §e" + next + " Emeralds"), true);
+    }
+
+    public static void startSpin(ServerPlayerEntity player, Inventory inventory) {
+        UUID uuid = player.getUuid();
+        if (ACTIVE_SPINS.containsKey(uuid)) {
+            player.sendMessage(Text.literal("§cDie Slotmaschine dreht bereits!"), false);
+            return;
+        }
+
+        int bet = getBet(player);
+        // A previous invalid amount must be explicitly corrected before a spin can start.
+        if (INVALID_BETS.contains(uuid)) {
+            player.sendMessage(Text.literal("§cDrehung blockiert: Setze zuerst einen gültigen Einsatz mit /gamba bet 1 bis 64."), false);
+            return;
+        }
+        // A second server-side validation is intentional: no GUI or stale client state can bypass it.
+        if (bet <= 0 || !validateBet(player, bet)) {
+            return;
+        }
+        if (countEmeralds(player) < bet) {
+            player.sendMessage(Text.literal("§cNicht genug Emeralds. Benötigt: " + bet + "."), false);
+            return;
+        }
+        if (!removeEmeralds(player, bet)) {
+            player.sendMessage(Text.literal("§cDer Einsatz konnte nicht abgebucht werden. Drehung blockiert."), false);
+            return;
+        }
+
+        int duration = ThreadLocalRandom.current().nextInt(SPIN_MIN_TICKS, SPIN_MAX_TICKS + 1);
+        SpinState state = new SpinState(player, inventory, bet, duration);
+        ACTIVE_SPINS.put(uuid, state);
+        inventory.setStack(SPIN_SLOT, named(Items.CLOCK, "§e§lDreht ..."));
+        inventory.markDirty();
+        player.sendMessage(Text.literal("§bSlotmaschine gestartet! §7Einsatz: §e" + bet + " Emeralds"), false);
+    }
+
+    public static void tick(MinecraftServer server) {
+        Iterator<Map.Entry<UUID, SpinState>> iterator = ACTIVE_SPINS.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<UUID, SpinState> entry = iterator.next();
+            SpinState state = entry.getValue();
+            if (state.player.isRemoved()) {
+                iterator.remove();
+                continue;
+            }
+
+            state.elapsedTicks++;
+            if (state.elapsedTicks % 3 == 0 && state.elapsedTicks < state.durationTicks) {
+                state.inventory.setStack(SYMBOL_1_SLOT, symbolStack(OreSymbol.random()));
+                state.inventory.setStack(SYMBOL_2_SLOT, symbolStack(OreSymbol.random()));
+                state.inventory.setStack(SYMBOL_3_SLOT, symbolStack(OreSymbol.random()));
+                state.inventory.markDirty();
+            }
+
+            if (state.elapsedTicks >= state.durationTicks) {
+                finishSpin(state);
+                iterator.remove();
+            }
+        }
+    }
+
+    private static void finishSpin(SpinState state) {
+        OreSymbol first = OreSymbol.random();
+        OreSymbol second = OreSymbol.random();
+        OreSymbol third = OreSymbol.random();
+        state.inventory.setStack(SYMBOL_1_SLOT, symbolStack(first));
+        state.inventory.setStack(SYMBOL_2_SLOT, symbolStack(second));
+        state.inventory.setStack(SYMBOL_3_SLOT, symbolStack(third));
+        state.inventory.setStack(SPIN_SLOT, named(Items.LIME_CONCRETE, "§a§lDREHEN"));
+        state.inventory.markDirty();
+
+        if (first == second && second == third) {
+            int payout = (int) Math.floor(state.bet * first.multiplier);
+            if (payout > 0) {
+                giveEmeralds(state.player, payout);
+            }
+            state.player.sendMessage(Text.literal(
+                    "§6§lDREI GLEICHE! §e" + first.displayName + " §7(" + first.multiplier + "x) — Auszahlung: §a" + payout + " Emeralds"
+            ), false);
+        } else {
+            state.player.sendMessage(Text.literal("§cKeine drei gleichen Symbole. Einsatz verloren."), false);
+        }
+    }
+
+    private static boolean removeEmeralds(ServerPlayerEntity player, int amount) {
+        PlayerInventory inventory = player.getInventory();
+        if (countEmeralds(player) < amount) return false;
+        int remaining = amount;
+        for (int slot = 0; slot < 36 && remaining > 0; slot++) {
+            ItemStack stack = inventory.getStack(slot);
+            if (!stack.isOf(Items.EMERALD)) continue;
+            int taken = Math.min(stack.getCount(), remaining);
+            stack.decrement(taken);
+            remaining -= taken;
+        }
+        inventory.markDirty();
+        return remaining == 0;
+    }
+
+    private static void giveEmeralds(ServerPlayerEntity player, int amount) {
+        ItemStack reward = new ItemStack(Items.EMERALD, amount);
+        player.getInventory().insertStack(reward);
+        if (!reward.isEmpty()) {
+            player.dropItem(reward, false);
+        }
+    }
+
+    private static ItemStack symbolStack(OreSymbol symbol) {
+        String label = symbol.displayName + " — " + String.format(java.util.Locale.ROOT, "%.1fx", symbol.multiplier);
+        if (symbol == OreSymbol.COAL) label += " (Verlust)";
+        if (symbol == OreSymbol.NETHERITE) label += " (JACKPOT)";
+        return named(symbol.item, "§b" + label);
+    }
+
+    private static ItemStack named(Item item, String name) {
+        ItemStack stack = new ItemStack(item);
+        stack.set(DataComponentTypes.CUSTOM_NAME, Text.literal(name));
+        return stack;
+    }
+
+    public static void fillGui(Inventory inventory, int bet, boolean spinning) {
+        for (int i = 0; i < inventory.size(); i++) {
+            inventory.setStack(i, named(Items.BLUE_STAINED_GLASS_PANE, " "));
+        }
+        inventory.setStack(13, named(Items.BOOK, "§b§lSYMBOLWERTE — /gamba odds"));
+        inventory.setStack(SYMBOL_1_SLOT, symbolStack(OreSymbol.random()));
+        inventory.setStack(SYMBOL_2_SLOT, symbolStack(OreSymbol.random()));
+        inventory.setStack(SYMBOL_3_SLOT, symbolStack(OreSymbol.random()));
+        inventory.setStack(30, named(Items.PAPER, "§bEinsatz ändern: §f/gamba bet <zahl>"));
+        inventory.setStack(BET_DOWN_SLOT, named(Items.REDSTONE_TORCH, "§cEinsatz −1"));
+        inventory.setStack(BET_DISPLAY_SLOT, named(Items.EMERALD, "§b§lEinsatz: §e" + bet + " Emeralds"));
+        inventory.setStack(BET_UP_SLOT, named(Items.SLIME_BALL, "§aEinsatz +1"));
+        inventory.setStack(SPIN_SLOT, named(spinning ? Items.CLOCK : Items.LIME_CONCRETE,
+                spinning ? "§e§lDreht ..." : "§a§lDREHEN"));
+        inventory.setStack(50, named(Items.BOOK, "§fGewinn nur bei 3 gleichen Symbolen"));
+        inventory.markDirty();
+    }
+
+    private static void showInvalidBet(Inventory inventory) {
+        inventory.setStack(BET_DISPLAY_SLOT, named(Items.BARRIER, "§cUngültiger Einsatz — /gamba bet 1 bis 64"));
+        inventory.markDirty();
+    }
+
+    public static void sendOdds(ServerPlayerEntity player) {
+        player.sendMessage(Text.literal("§b§lGAMBA — SYMBOLWERTE"), false);
+        for (OreSymbol symbol : OreSymbol.values()) {
+            player.sendMessage(Text.literal("§7• §f" + symbol.displayName + " §8— §e" +
+                    String.format(java.util.Locale.ROOT, "%.1fx", symbol.multiplier)), false);
+        }
+        player.sendMessage(Text.literal("§7Gewinn gibt es nur bei drei identischen Symbolen in der mittleren Reihe. Auszahlung wird auf ganze Emeralds abgerundet."), false);
+    }
+}
+
+========================================================================================
+FILE: src/main/java/de/gambamod/GambaMod.java
+========================================================================================
+package de.gambamod;
+
+import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.minecraft.inventory.SimpleInventory;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.Registry;
+import net.minecraft.resource.featuretoggle.FeatureSet;
+import net.minecraft.screen.ScreenHandlerType;
+import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
+
+import static net.minecraft.server.command.CommandManager.argument;
+import static net.minecraft.server.command.CommandManager.literal;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+
+public final class GambaMod implements ModInitializer {
+    public static final String MOD_ID = "gamba_mod";
+
+    public static final ScreenHandlerType<GambaScreenHandler> GAMBA_HANDLER = Registry.register(
+            Registries.SCREEN_HANDLER,
+            Identifier.of(MOD_ID, "gamba_slot"),
+            new ScreenHandlerType<>(GambaScreenHandler::new, FeatureSet.empty())
+    );
+
+    @Override
+    public void onInitialize() {
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(
+                literal("gamba")
+                        .executes(context -> {
+                            GambaMachine.open(context.getSource().getPlayer());
+                            return 1;
+                        })
+                        .then(literal("bet")
+                                .then(argument("amount", IntegerArgumentType.integer())
+                                        .executes(context -> {
+                                            ServerPlayerEntity player = context.getSource().getPlayer();
+                                            int amount = IntegerArgumentType.getInteger(context, "amount");
+                                            GambaMachine.setBetFromCommand(player, amount);
+                                            return 1;
+                                        })))
+                        .then(literal("balance").executes(context -> {
+                            ServerPlayerEntity player = context.getSource().getPlayer();
+                            context.getSource().sendFeedback(
+                                    () -> Text.literal("§bGamba-Guthaben: §a" + GambaMachine.countEmeralds(player) + " Emeralds"),
+                                    false
+                            );
+                            return 1;
+                        }))
+                        .then(literal("odds").executes(context -> {
+                            ServerPlayerEntity player = context.getSource().getPlayer();
+                            GambaMachine.sendOdds(player);
+                            return 1;
+                        }))
+        ));
+
+        ServerTickEvents.END_SERVER_TICK.register(GambaMachine::tick);
+    }
+}
+
+========================================================================================
+FILE: src/main/java/de/gambamod/GambaScreenHandler.java
+========================================================================================
+package de.gambamod;
+
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.inventory.Inventory;
+import net.minecraft.inventory.SimpleInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.screen.GenericContainerScreenHandler;
+import net.minecraft.screen.ScreenHandlerType;
+import net.minecraft.screen.slot.SlotActionType;
+
+/** Server-authoritative 6-row chest menu. Every GUI slot is a button, never an item slot. */
+public final class GambaScreenHandler extends GenericContainerScreenHandler {
+    public static final int GUI_SIZE = 54;
+    private final Inventory machineInventory;
+
+    public GambaScreenHandler(int syncId, PlayerInventory playerInventory) {
+        this(syncId, playerInventory, new SimpleInventory(GUI_SIZE));
+    }
+
+    public GambaScreenHandler(int syncId, PlayerInventory playerInventory, Inventory inventory) {
+        super(GambaMod.GAMBA_HANDLER, syncId, playerInventory, inventory, 6);
+        this.machineInventory = inventory;
+    }
+
+    public Inventory getMachineInventory() {
+        return machineInventory;
+    }
+
+    @Override
+    public void onSlotClick(int slotIndex, int button, SlotActionType actionType, PlayerEntity player) {
+        // Never allow moving GUI decorations or player items while this menu is open.
+        // Only normal left-clicks on specific GUI slots activate controls.
+        if (!(player instanceof net.minecraft.server.network.ServerPlayerEntity serverPlayer)) {
+            return;
+        }
+        if (actionType != SlotActionType.PICKUP || button != 0) {
+            return;
+        }
+        if (slotIndex < 0 || slotIndex >= GUI_SIZE) {
+            return;
+        }
+
+        switch (slotIndex) {
+            case GambaMachine.BET_DOWN_SLOT -> GambaMachine.changeBet(serverPlayer, machineInventory, -1);
+            case GambaMachine.BET_UP_SLOT -> GambaMachine.changeBet(serverPlayer, machineInventory, 1);
+            case GambaMachine.SPIN_SLOT -> GambaMachine.startSpin(serverPlayer, machineInventory);
+            default -> { /* decorative/information slot */ }
+        }
+    }
+
+    @Override
+    public ItemStack quickMove(PlayerEntity player, int slot) {
+        return ItemStack.EMPTY;
+    }
+
+    @Override
+    public boolean canUse(PlayerEntity player) {
+        return true;
+    }
+}
+
+========================================================================================
+FILE: src/main/resources/fabric.mod.json
+========================================================================================
+{
+  "schemaVersion": 1,
+  "id": "gamba_mod",
+  "version": "${version}",
+  "name": "Gamba Slot Machine",
+  "description": "Eine blaue Minecraft-Slotmaschine mit validierten Emerald-Einsätzen und Ore-Multiplikatoren.",
+  "authors": ["GambaMod"],
+  "contact": {
+    "issues": "https://github.com/DEIN-NAME/gamba-mod/issues"
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["de.gambamod.GambaMod"],
+    "client": ["de.gambamod.client.GambaModClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
