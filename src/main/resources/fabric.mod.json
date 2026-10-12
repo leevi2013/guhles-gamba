@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "gamba_mod",
+  "version": "${version}",
+  "name": "Gamba Slot Machine",
+  "description": "Eine blaue Minecraft-Slotmaschine mit validierten Emerald-Einsätzen und Ore-Multiplikatoren.",
+  "authors": ["GambaMod"],
+  "contact": {
+    "issues": "https://github.com/DEIN-NAME/gamba-mod/issues"
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["de.gambamod.GambaMod"],
+    "client": ["de.gambamod.client.GambaModClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
